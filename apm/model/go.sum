@@ -1,0 +1,2 @@
+go.opentelemetry.io/collector/semconv v0.97.0 h1:iF3nTfThbiOwz7o5Pocn0dDnDoffd18ijDuf6Mwzi1s=
+go.opentelemetry.io/collector/semconv v0.97.0/go.mod h1:8ElcRZ8Cdw5JnvhTOQOdYizkJaQ10Z2fS+R6djOnj6A=

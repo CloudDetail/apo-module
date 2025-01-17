@@ -1,0 +1,4 @@
+github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2 h1:zzrxE1FKn5ryBNl9eKOeqQ58Y/Qpo3Q9QNxKHX5uzzQ=
+github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2/go.mod h1:hzfGeIUDq/j97IG+FhNqkowIyEcD88LrW6fyU3K3WqY=
+go.opentelemetry.io/collector/semconv v0.97.0 h1:iF3nTfThbiOwz7o5Pocn0dDnDoffd18ijDuf6Mwzi1s=
+go.opentelemetry.io/collector/semconv v0.97.0/go.mod h1:8ElcRZ8Cdw5JnvhTOQOdYizkJaQ10Z2fS+R6djOnj6A=
