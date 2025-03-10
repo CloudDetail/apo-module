@@ -37,11 +37,12 @@ func NewAdapterHTTPClient(address string, timeout int64) *AdapterHTTPClient {
 	}
 }
 
-func (c *AdapterHTTPClient) QueryList(traceId string, apmType string, startTime uint64) ([]*model.OtelServiceNode, error) {
+func (c *AdapterHTTPClient) QueryList(traceId string, apmType string, startTime uint64, attributes string) ([]*model.OtelServiceNode, error) {
 	queryParams := QueryParams{
-		TraceId:   traceId,
-		ApmType:   apmType,
-		StartTime: startTime,
+		TraceId:    traceId,
+		ApmType:    apmType,
+		StartTime:  startTime,
+		Attributes: attributes,
 	}
 
 	requestBody, err := json.Marshal(&queryParams)

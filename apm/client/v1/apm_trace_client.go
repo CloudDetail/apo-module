@@ -30,12 +30,12 @@ func NewApmTraceClient(address string, timeout int64, muatedRatio int, mutateNod
 	}
 }
 
-func (client *ApmTraceClient) QueryServices(apmType string, traceId string, startTimeMs uint64) ([]*apmmodel.OtelServiceNode, error) {
-	return client.api.QueryList(traceId, apmType, startTimeMs)
+func (client *ApmTraceClient) QueryServices(apmType string, traceId string, rootTrace *model.TraceLabels) ([]*apmmodel.OtelServiceNode, error) {
+	return client.api.QueryList(traceId, apmType, rootTrace.StartTime/1e6, rootTrace.Attributes)
 }
 
 func (client *ApmTraceClient) QueryTrace(apmType string, traceId string, rootTrace *model.TraceLabels) (*apmmodel.OTelTrace, error) {
-	serviceNodes, err := client.api.QueryList(traceId, apmType, rootTrace.StartTime/1e6)
+	serviceNodes, err := client.api.QueryList(traceId, apmType, rootTrace.StartTime/1e6, rootTrace.Attributes)
 	if err != nil {
 		return nil, err
 	}

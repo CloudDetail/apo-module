@@ -6,7 +6,7 @@ import (
 )
 
 type ApmTraceAPI interface {
-	QueryServices(apmType string, traceId string, startTimeMs uint64) ([]*apmmodel.OtelServiceNode, error)
+	QueryServices(apmType string, traceId string, startTimeMs uint64, attributes string) ([]*apmmodel.OtelServiceNode, error)
 	QueryTrace(apmType string, traceId string, rootTrace *model.TraceLabels) (*apmmodel.OTelTrace, error)
 	FillMutatedSpan(apmType string, traceId string, serviceNode *apmmodel.OtelServiceNode) error
 	QueryMutatedSlowTraceTree(traceId string, traces *model.Traces) (*model.TraceTreeNode, []*model.ApmClientCall, error)
