@@ -84,6 +84,7 @@ func (tree *OtelTree) BuildServiceNodes(trace *OTelTrace) error {
 func (tree *OtelTree) BuildRelation4Spans(trace *OTelTrace) error {
 	var rootServiceNode *OtelServiceNode = nil
 	serviceNodes := make(map[string]*OtelServiceNode, 0)
+	missParentEntrySpanIds := make([]string, 0)
 	for spanId, span := range tree.SpanMap {
 		parentSpanId := span.PSpanId
 		if len(parentSpanId) > 0 {
@@ -91,6 +92,9 @@ func (tree *OtelTree) BuildRelation4Spans(trace *OTelTrace) error {
 				if parentSpan.Kind.IsExit() && tree.isChildEntry(span) {
 					serviceNodes[spanId] = newOTelServiceNode(span)
 				}
+			} else if span.Kind.IsEntry() {
+				serviceNodes[spanId] = newOTelServiceNode(span)
+				missParentEntrySpanIds = append(missParentEntrySpanIds, spanId)
 			}
 		} else {
 			if rootServiceNode == nil {
@@ -113,6 +117,7 @@ func (tree *OtelTree) BuildRelation4Spans(trace *OTelTrace) error {
 		}
 	}
 	trace.rootServiceNode = rootServiceNode
+	trace.missParentEntrySpanIds = missParentEntrySpanIds
 	return nil
 }
 

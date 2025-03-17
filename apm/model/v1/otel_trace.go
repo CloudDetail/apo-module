@@ -5,10 +5,11 @@ import (
 )
 
 type OTelTrace struct {
-	SpanServiceMap  map[string]*OtelServiceNode
-	rootServiceNode *OtelServiceNode
-	spanIdMap       map[string]string
-	ApmType         string
+	SpanServiceMap         map[string]*OtelServiceNode
+	rootServiceNode        *OtelServiceNode
+	missParentEntrySpanIds []string
+	spanIdMap              map[string]string
+	ApmType                string
 }
 
 func NewOTelTrace(apmType string) *OTelTrace {
@@ -55,14 +56,11 @@ func (trace *OTelTrace) GetServiceNode(spanId string) *OtelServiceNode {
 func (trace *OTelTrace) GetServiceNodes() []*OtelServiceNode {
 	nodes := make([]*OtelServiceNode, 0)
 
-	if trace.rootServiceNode == nil {
-		for _, node := range trace.SpanServiceMap {
-			if node.Parent == nil {
-				nodes = append(nodes, node)
-			}
-		}
-	} else {
+	if trace.rootServiceNode != nil {
 		nodes = append(nodes, trace.rootServiceNode)
+	}
+	for _, spanId := range trace.missParentEntrySpanIds {
+		nodes = append(nodes, trace.SpanServiceMap[spanId])
 	}
 	return nodes
 }
