@@ -58,8 +58,11 @@ func (tree *OtelTree) BuildServiceNodes(trace *OTelTrace) error {
 			if err := trace.addServiceNode(span.SpanId, serviceNode); err != nil {
 				return err
 			}
+		} else if span.Kind.IsExit() {
+			trace.MapSpanId(span.SpanId, span.PSpanId)
 		}
 	}
+	missParentEntrySpanIds := make([]string, 0)
 	for pspanId, ChildrenIds := range tree.Children {
 		if parentSpan, exist := tree.SpanMap[pspanId]; exist {
 			serviceNode := trace.GetServiceNode(parentSpan.SpanId)
@@ -76,8 +79,16 @@ func (tree *OtelTree) BuildServiceNodes(trace *OTelTrace) error {
 					}
 				}
 			}
+		} else {
+			for _, childSpanId := range ChildrenIds {
+				childSpan := tree.SpanMap[childSpanId]
+				if childSpan.Kind.IsEntry() {
+					missParentEntrySpanIds = append(missParentEntrySpanIds, childSpanId)
+				}
+			}
 		}
 	}
+	trace.missParentEntrySpanIds = missParentEntrySpanIds
 	return nil
 }
 
