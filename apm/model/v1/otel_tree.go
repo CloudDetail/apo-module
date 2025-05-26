@@ -69,7 +69,11 @@ func (tree *OtelTree) BuildServiceNodes(trace *OTelTrace) error {
 			for _, childSpanId := range ChildrenIds {
 				childSpan := tree.SpanMap[childSpanId]
 				if childSpan.Kind.IsEntry() {
-					serviceNode.addChild(trace.GetServiceNode(childSpanId))
+					if serviceNode != nil {
+						serviceNode.addChild(trace.GetServiceNode(childSpanId))
+					} else {
+						missParentEntrySpanIds = append(missParentEntrySpanIds, childSpanId)
+					}
 				} else {
 					if childSpan.Kind.IsExit() {
 						serviceNode.AddExitSpan(childSpan)
