@@ -1,10 +1,17 @@
 package api
 
-import "github.com/CloudDetail/apo-module/apm/model/v1"
+import (
+	"context"
+
+	"github.com/CloudDetail/apo-module/apm/model/v1"
+)
 
 type AdapterAPI interface {
 	QueryList(traceId string, apmType string, startTime uint64, attributes string) ([]*model.OtelServiceNode, error)
 	QueryDetail(traceId string, apmType string, startTime uint64, attributes string) ([]*model.OtelSpan, error)
+
+	QueryListWithCtx(ctx context.Context, traceId string, apmType string, startTime uint64, attributes string) ([]*model.OtelServiceNode, error)
+	QueryDetailWithCtx(ctx context.Context, traceId string, apmType string, startTime uint64, attributes string) ([]*model.OtelSpan, error)
 }
 
 type TraceListResponse struct {
