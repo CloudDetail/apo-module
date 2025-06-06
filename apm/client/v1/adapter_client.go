@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,8 @@ import (
 	"github.com/CloudDetail/apo-module/apm/client/v1/api"
 	"github.com/CloudDetail/apo-module/apm/model/v1"
 )
+
+var _ api.AdapterAPI = &AdapterHTTPClient{}
 
 type AdapterHTTPClient struct {
 	TraceListAddress   string
@@ -35,6 +38,10 @@ func NewAdapterHTTPClient(address string, timeout int64) *AdapterHTTPClient {
 		Timeout:            timeoutDuration,
 		client:             &http.Client{Timeout: timeoutDuration},
 	}
+}
+
+func (c *AdapterHTTPClient) SetRountTriper(rt http.RoundTripper) {
+	c.client.Transport = rt
 }
 
 func (c *AdapterHTTPClient) QueryList(traceId string, apmType string, startTime uint64, attributes string) ([]*model.OtelServiceNode, error) {
@@ -89,6 +96,79 @@ func (c *AdapterHTTPClient) QueryDetail(traceId string, apmType string, startTim
 		c.TraceDetailAddress,
 		"application/json",
 		bytes.NewReader(requestBody))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var response api.TraceDetailResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, err
+	}
+	if !response.Success {
+		return nil, errors.New(response.ErrorMsg)
+	}
+	return response.Data, nil
+}
+
+func (c *AdapterHTTPClient) QueryListWithCtx(ctx context.Context, traceId string, apmType string, startTime uint64, attributes string) ([]*model.OtelServiceNode, error) {
+	queryParams := QueryParams{
+		TraceId:    traceId,
+		ApmType:    apmType,
+		StartTime:  startTime,
+		Attributes: attributes,
+	}
+
+	requestBody, err := json.Marshal(&queryParams)
+	if err != nil {
+		return nil, fmt.Errorf("query param is invalid, %s", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.TraceListAddress, bytes.NewReader(requestBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var response api.TraceListResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, err
+	}
+	if !response.Success {
+		return nil, errors.New(response.ErrorMsg)
+	}
+	if len(response.Data) == 0 {
+		return nil, fmt.Errorf("[x Trace NotFound] traceId: %s", traceId)
+	}
+	return response.Data, nil
+}
+
+func (c *AdapterHTTPClient) QueryDetailWithCtx(ctx context.Context, traceId string, apmType string, startTime uint64, attributes string) ([]*model.OtelSpan, error) {
+	queryParams := QueryParams{
+		TraceId:    traceId,
+		ApmType:    apmType,
+		StartTime:  startTime,
+		Attributes: attributes,
+	}
+
+	requestBody, err := json.Marshal(&queryParams)
+	if err != nil {
+		return nil, fmt.Errorf("query param is invalid, %s", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.TraceDetailAddress, bytes.NewReader(requestBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
