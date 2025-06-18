@@ -71,6 +71,7 @@ type TraceLabels struct {
 	EndTime           uint64         `json:"end_time"`
 	NodeName          string         `json:"node_name"`
 	NodeIp            string         `json:"node_ip"`
+	ClusterID         string         `json:"cluster_id"`
 	OffsetTs          int64          `json:"offset_ts"`
 }
 
