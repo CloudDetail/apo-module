@@ -8,17 +8,10 @@ import (
 )
 
 type ApmTraceAPI interface {
-	QueryServices(apmType string, traceId string, rootTrace *model.TraceLabels) ([]*apmmodel.OtelServiceNode, error)
-	QueryTrace(apmType string, traceId string, rootTrace *model.TraceLabels) (*apmmodel.OTelTrace, error)
-	FillMutatedSpan(apmType string, traceId string, serviceNode *apmmodel.OtelServiceNode) error
-	QueryMutatedSlowTraceTree(traceId string, traces *model.Traces) (*model.TraceTreeNode, []*model.ApmClientCall, error)
-	QueryErrorTraceTree(traceId string, traces *model.Traces) (*model.ErrorTreeNode, error)
-	NeedGetDetailSpan(apmType string) bool
-
-	QueryServicesWithCtx(ctx context.Context, apmType string, traceId string, rootTrace *model.TraceLabels) ([]*apmmodel.OtelServiceNode, error)
-	QueryTraceWithCtx(ctx context.Context, apmType string, traceId string, rootTrace *model.TraceLabels) (*apmmodel.OTelTrace, error)
-	FillMutatedSpanWithCtx(ctx context.Context, apmType string, traceId string, serviceNode *apmmodel.OtelServiceNode) error
-	QueryMutatedSlowTraceTreeWithCtx(ctx context.Context, traceId string, traces *model.Traces) (*model.TraceTreeNode, []*model.ApmClientCall, error)
-	QueryErrorTraceTreeWithCtx(ctx context.Context, traceId string, traces *model.Traces) (*model.ErrorTreeNode, error)
-	NeedGetDetailSpanWithCtx(ctx context.Context, apmType string) bool
+	QueryServices(ctx context.Context, clusterID string, apmType string, traceId string, rootTrace *model.TraceLabels) ([]*apmmodel.OtelServiceNode, error)
+	QueryTrace(ctx context.Context, clusterID string, apmType string, traceId string, rootTrace *model.TraceLabels) (*apmmodel.OTelTrace, error)
+	FillMutatedSpan(ctx context.Context, clusterID string, apmType string, traceId string, serviceNode *apmmodel.OtelServiceNode) error
+	QueryMutatedSlowTraceTree(ctx context.Context, clusterID string, traceId string, traces *model.Traces) (*model.TraceTreeNode, []*model.ApmClientCall, error)
+	QueryErrorTraceTree(ctx context.Context, clusterID string, traceId string, traces *model.Traces) (*model.ErrorTreeNode, error)
+	NeedGetDetailSpan(ctx context.Context, apmType string) bool
 }

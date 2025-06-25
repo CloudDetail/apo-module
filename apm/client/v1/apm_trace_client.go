@@ -42,20 +42,27 @@ func NewApmTraceClientByAPI(api api.AdapterAPI, muatedRatio int, mutateNodeMode 
 	}
 }
 
-func (client *ApmTraceClient) QueryServices(apmType string, traceId string, rootTrace *model.TraceLabels) ([]*apmmodel.OtelServiceNode, error) {
-	return client.api.QueryList(traceId, apmType, rootTrace.StartTime/1e6, rootTrace.Attributes)
+func (client *ApmTraceClient) QueryServices(ctx context.Context, clusterID string, apmType string, traceId string, rootTrace *model.TraceLabels) ([]*apmmodel.OtelServiceNode, error) {
+	param := &api.QueryParams{
+		TraceId:    traceId,
+		ApmType:    apmType,
+		StartTime:  rootTrace.StartTime / 1e6,
+		Attributes: rootTrace.Attributes,
+		ClusterID:  clusterID,
+	}
+	return client.api.QueryList(ctx, param)
 }
 
-func (client *ApmTraceClient) QueryServicesWithCtx(ctx context.Context, apmType string, traceId string, rootTrace *model.TraceLabels) ([]*apmmodel.OtelServiceNode, error) {
-	return client.api.QueryListWithCtx(ctx, traceId, apmType, rootTrace.StartTime/1e6, rootTrace.Attributes)
-}
+func (client *ApmTraceClient) QueryTrace(ctx context.Context, clusterID string, apmType string, traceId string, rootTrace *model.TraceLabels) (*apmmodel.OTelTrace, error) {
+	param := &api.QueryParams{
+		TraceId:    traceId,
+		ApmType:    apmType,
+		StartTime:  rootTrace.StartTime / 1e6,
+		Attributes: rootTrace.Attributes,
+		ClusterID:  clusterID,
+	}
 
-func (client *ApmTraceClient) QueryTrace(apmType string, traceId string, rootTrace *model.TraceLabels) (*apmmodel.OTelTrace, error) {
-	return client.QueryTraceWithCtx(context.Background(), apmType, traceId, rootTrace)
-}
-
-func (client *ApmTraceClient) QueryTraceWithCtx(ctx context.Context, apmType string, traceId string, rootTrace *model.TraceLabels) (*apmmodel.OTelTrace, error) {
-	serviceNodes, err := client.api.QueryListWithCtx(ctx, traceId, apmType, rootTrace.StartTime/1e6, rootTrace.Attributes)
+	serviceNodes, err := client.api.QueryList(ctx, param)
 	if err != nil {
 		return nil, err
 	}
@@ -108,12 +115,16 @@ func (client *ApmTraceClient) QueryTraceWithCtx(ctx context.Context, apmType str
 	return apmTrace, nil
 }
 
-func (client *ApmTraceClient) FillMutatedSpan(apmType string, traceId string, serviceNode *apmmodel.OtelServiceNode) error {
-	return client.FillMutatedSpanWithCtx(context.Background(), apmType, traceId, serviceNode)
-}
+func (client *ApmTraceClient) FillMutatedSpan(ctx context.Context, clusterID string, apmType string, traceId string, serviceNode *apmmodel.OtelServiceNode) error {
+	param := &api.QueryParams{
+		TraceId:    traceId,
+		ApmType:    apmType,
+		StartTime:  serviceNode.GetStartTime() / 1e6,
+		Attributes: serviceNode.Attribute,
+		ClusterID:  clusterID,
+	}
 
-func (client *ApmTraceClient) FillMutatedSpanWithCtx(ctx context.Context, apmType string, traceId string, serviceNode *apmmodel.OtelServiceNode) error {
-	spans, err := client.api.QueryDetailWithCtx(ctx, traceId, apmType, serviceNode.GetStartTime()/1e6, serviceNode.Attribute)
+	spans, err := client.api.QueryDetail(ctx, param)
 	if err != nil {
 		return err
 	}
@@ -128,11 +139,7 @@ func (client *ApmTraceClient) FillMutatedSpanWithCtx(ctx context.Context, apmTyp
 	return nil
 }
 
-func (client *ApmTraceClient) QueryMutatedSlowTraceTree(traceId string, traces *model.Traces) (*model.TraceTreeNode, []*model.ApmClientCall, error) {
-	return client.QueryMutatedSlowTraceTreeWithCtx(context.Background(), traceId, traces)
-}
-
-func (client *ApmTraceClient) QueryMutatedSlowTraceTreeWithCtx(ctx context.Context, traceId string, traces *model.Traces) (*model.TraceTreeNode, []*model.ApmClientCall, error) {
+func (client *ApmTraceClient) QueryMutatedSlowTraceTree(ctx context.Context, clusterID string, traceId string, traces *model.Traces) (*model.TraceTreeNode, []*model.ApmClientCall, error) {
 	entryTrace := traces.RootTrace.Labels
 	if uint64(entryTrace.ThresholdValue) >= entryTrace.Duration {
 		return nil, nil, fmt.Errorf("entry service(%s) duration(%d) is less than threshold(%s(%s)=%f)",
@@ -141,7 +148,7 @@ func (client *ApmTraceClient) QueryMutatedSlowTraceTreeWithCtx(ctx context.Conte
 	}
 
 	apmType := entryTrace.ApmType
-	apmTrace, err := client.QueryTraceWithCtx(ctx, apmType, traceId, entryTrace)
+	apmTrace, err := client.QueryTrace(ctx, clusterID, apmType, traceId, entryTrace)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -156,8 +163,8 @@ func (client *ApmTraceClient) QueryMutatedSlowTraceTreeWithCtx(ctx context.Conte
 		return nil, nil, err
 	}
 
-	if client.NeedGetDetailSpan(apmType) {
-		if err := client.FillMutatedSpan(apmType, traceId, apmTrace.GetServiceNode(mutatedTrace.SpanId)); err != nil {
+	if client.NeedGetDetailSpan(ctx, apmType) {
+		if err := client.FillMutatedSpan(ctx, clusterID, apmType, traceId, apmTrace.GetServiceNode(mutatedTrace.SpanId)); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -166,13 +173,9 @@ func (client *ApmTraceClient) QueryMutatedSlowTraceTreeWithCtx(ctx context.Conte
 	return apmTraceTree.Root, clientCalls, nil
 }
 
-func (client *ApmTraceClient) QueryErrorTraceTree(traceId string, traces *model.Traces) (*model.ErrorTreeNode, error) {
-	return client.QueryErrorTraceTreeWithCtx(context.Background(), traceId, traces)
-}
-
-func (client *ApmTraceClient) QueryErrorTraceTreeWithCtx(ctx context.Context, traceId string, traces *model.Traces) (*model.ErrorTreeNode, error) {
+func (client *ApmTraceClient) QueryErrorTraceTree(ctx context.Context, clusterID string, traceId string, traces *model.Traces) (*model.ErrorTreeNode, error) {
 	entryTrace := traces.RootTrace.Labels
-	apmTrace, err := client.QueryTraceWithCtx(ctx, entryTrace.ApmType, traceId, entryTrace)
+	apmTrace, err := client.QueryTrace(ctx, clusterID, entryTrace.ApmType, traceId, entryTrace)
 	if err != nil {
 		return nil, err
 	}
@@ -181,11 +184,11 @@ func (client *ApmTraceClient) QueryErrorTraceTreeWithCtx(ctx context.Context, tr
 	if err != nil {
 		return nil, err
 	}
-	if client.NeedGetDetailSpan(entryTrace.ApmType) {
+	if client.NeedGetDetailSpan(ctx, entryTrace.ApmType) {
 		for spanId, errorNode := range apmErrorTree.NodeMap {
 			if errorNode.IsError && errorNode.IsSampled {
 				if node := apmTrace.GetServiceNode(spanId); node != nil {
-					if err := client.FillMutatedSpan(entryTrace.ApmType, traces.TraceId, node); err != nil {
+					if err := client.FillMutatedSpan(ctx, clusterID, entryTrace.ApmType, traces.TraceId, node); err != nil {
 						return nil, err
 					}
 					errorNode.ErrorSpans = GetErrorSpans(node)
@@ -200,11 +203,7 @@ func (client *ApmTraceClient) QueryErrorTraceTreeWithCtx(ctx context.Context, tr
 	return apmErrorTree.Root, nil
 }
 
-func (client *ApmTraceClient) NeedGetDetailSpan(apmType string) bool {
-	return client.NeedGetDetailSpanWithCtx(context.Background(), apmType)
-}
-
-func (client *ApmTraceClient) NeedGetDetailSpanWithCtx(ctx context.Context, apmType string) bool {
+func (client *ApmTraceClient) NeedGetDetailSpan(ctx context.Context, apmType string) bool {
 	if len(client.getDetailTypes) == 0 {
 		return false
 	}

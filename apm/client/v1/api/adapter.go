@@ -7,11 +7,16 @@ import (
 )
 
 type AdapterAPI interface {
-	QueryList(traceId string, apmType string, startTime uint64, attributes string) ([]*model.OtelServiceNode, error)
-	QueryDetail(traceId string, apmType string, startTime uint64, attributes string) ([]*model.OtelSpan, error)
+	QueryList(ctx context.Context, params *QueryParams) ([]*model.OtelServiceNode, error)
+	QueryDetail(ctx context.Context, params *QueryParams) ([]*model.OtelSpan, error)
+}
 
-	QueryListWithCtx(ctx context.Context, traceId string, apmType string, startTime uint64, attributes string) ([]*model.OtelServiceNode, error)
-	QueryDetailWithCtx(ctx context.Context, traceId string, apmType string, startTime uint64, attributes string) ([]*model.OtelSpan, error)
+type QueryParams struct {
+	TraceId    string `json:"traceId"`
+	ApmType    string `json:"apmType"`
+	StartTime  uint64 `json:"startTime"`
+	Attributes string `json:"attributes,omitempty"`
+	ClusterID  string `json:"clusterId"`
 }
 
 type TraceListResponse struct {
